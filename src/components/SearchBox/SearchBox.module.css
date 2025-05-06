@@ -1,0 +1,11 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 350px;
+    margin: 20px 0;
+    gap: 5px;
+}
+.searchInput {
+  width: 100%;
+  /* background-color: white; */
+}
