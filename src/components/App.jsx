@@ -1,57 +1,86 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useDebounce } from 'use-debounce';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { GridLoader } from "react-spinners";
+import { IoSearch } from "react-icons/io5";
 import './App.css'
-import ContactList from './ContactList/ContactList'
-import SearchBox from './SearchBox/SearchBox'
-import ContactForm from './ContactForm/ContactForm'
+import ImageGallery from './ImageGallery/ImageGallery'
+import SearchBar from './SearchBar/SearchBar'
+import Modal from 'react-modal';
+Modal.setAppElement('#root');
 
 export default function App() {
-  const [contacts, setContacts] = useState(() => {
-    const savedObjects = localStorage.getItem("saved-contacts");
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
-    if (savedObjects !== null) {
-      const parseData = JSON.parse(savedObjects);
-      return parseData
+  const [newImages, setNewImages] = useState("");
+  const [carrentPage, setCarrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const [modalIsOpen, setIsOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  function openModal(imageUrl) {
+    setSelectedImage(imageUrl);
+    setIsOpen(true);
+  }
+
+  function closeModal() {
+    setIsOpen(false);
+  }
+
+  const handleSearch = (searchImage) => {
+    setNewImages(searchImage);
+    setCarrentPage(1);
+    setImages([]);
+  }
+
+  const incrementPage = () => {
+    setCarrentPage(carrentPage + 1)
+  }
+
+  useEffect(() => {
+    if (newImages === "") {
+      return;
     }
 
-    return [
-    { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-    { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-    { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-    { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' }
-    ]
-  });
+    async function fetchData () {
+      try {
+      setIsError(false);
+      setIsLoading(true);
+      const response = await axios.get(`https://api.unsplash.com/search/photos?orientation=landscape&query=${newImages}&per_page=20&page=${carrentPage}&client_id=cBBnwbD5wpzxm6ywVyoTQvzfHHdG4tfE2bLgX1r6v2Y`);
+        setImages((prevImages) => [...prevImages, ...response.data.results]);
+        setTotalPages(response.data.total_pages);
+    } catch {
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+    }
 
-  const addContact = (newContact) => {
-    setContacts((prevContacts) => {
-      return [...prevContacts, newContact]
-    })
-  };
-  
-  const deleteContact = (contactId) => {
-    setContacts(prevContacts => {
-      return prevContacts.filter((contact) => contact.id !== contactId)
-    })
-  };
-  
-  useEffect(() => {
-    localStorage.setItem("saved-contacts", JSON.stringify(contacts));
-  }, [contacts])
+    fetchData (newImages, carrentPage)
 
-  const [searchInput, setSearchInput] = useState('')
-  const [debounceInputValue] = useDebounce(searchInput, 1000);
-
-  const searchContacts = useMemo(() => {
-    return contacts.filter((contact) => contact.name.toLowerCase().includes(debounceInputValue.toLowerCase()));
-  }, [debounceInputValue, contacts])
+}, [newImages, carrentPage])
 
   return (
     <>
-    <div>
-      <h1 className="title">Phonebook</h1>
-        <ContactForm onContact={addContact} />
-        <SearchBox value={searchInput} onChange={setSearchInput} />
-        <ContactList contacts={searchContacts} onDelete={deleteContact} />
+    <div className='container'>
+        <SearchBar onSearch={handleSearch} />
+        {isError && <strong className='error'>Error! Try again!</strong>}
+        <Modal
+          isOpen={modalIsOpen}
+          onRequestClose={closeModal}
+          contentLabel="Image modal"
+          className="modal"
+          overlayClassName="overlay"
+          shouldCloseOnOverlayClick={true}
+          preventScroll={false}
+        >
+          {selectedImage && <img src={selectedImage} alt="Large view" />}
+        </Modal>
+        {images.length > 0 && <ImageGallery photos={images} onImageClick={openModal} />}
+        {isLoading && <p className='loader'><GridLoader size={10} color={"#1853ec"} /></p>}
+        {images.length > 0 && !isLoading && carrentPage !== totalPages && <button onClick={incrementPage} className='btn'><IoSearch />Load more</button>}
     </div>
     </>
   );
