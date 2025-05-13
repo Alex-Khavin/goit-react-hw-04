@@ -6,8 +6,8 @@ export default function ImageGallery({photos, onImageClick}) {
  
   <ul className={css.container}>
       {photos.map(photo => (
-    <li className={css.item} key={photo.id} onClick={() => onImageClick(photo.urls.regular)}>
-          <ImageCard data={photo} />
+    <li className={css.item} key={photo.id}>
+          <ImageCard data={photo} onImageClick={onImageClick} />
 	  </li>   
   ))}
   </ul>

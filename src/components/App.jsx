@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { GridLoader } from "react-spinners";
-import { IoSearch } from "react-icons/io5";
 import './App.css'
 import ImageGallery from './ImageGallery/ImageGallery'
 import SearchBar from './SearchBar/SearchBar'
-import Modal from 'react-modal';
-Modal.setAppElement('#root');
+import LoadMoreBtn from './LoadMoreBtn/LoadMoreBtn'
+import ImageModal from './ImageModal/ImageModal'
+import Loader from './Loader/Loader'
+import ErrorMessage from './ErrorMessage/ErrorMessage'
+
 
 export default function App() {
   const [images, setImages] = useState([]);
@@ -14,7 +15,7 @@ export default function App() {
   const [isError, setIsError] = useState(false);
 
   const [newImages, setNewImages] = useState("");
-  const [carrentPage, setCarrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
   const [modalIsOpen, setIsOpen] = useState(false);
@@ -31,12 +32,12 @@ export default function App() {
 
   const handleSearch = (searchImage) => {
     setNewImages(searchImage);
-    setCarrentPage(1);
+    setCurrentPage(1);
     setImages([]);
   }
 
   const incrementPage = () => {
-    setCarrentPage(carrentPage + 1)
+    setCurrentPage(currentPage + 1)
   }
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function App() {
       try {
       setIsError(false);
       setIsLoading(true);
-      const response = await axios.get(`https://api.unsplash.com/search/photos?orientation=landscape&query=${newImages}&per_page=20&page=${carrentPage}&client_id=cBBnwbD5wpzxm6ywVyoTQvzfHHdG4tfE2bLgX1r6v2Y`);
+      const response = await axios.get(`https://api.unsplash.com/search/photos?orientation=landscape&query=${newImages}&per_page=20&page=${currentPage}&client_id=cBBnwbD5wpzxm6ywVyoTQvzfHHdG4tfE2bLgX1r6v2Y`);
         setImages((prevImages) => [...prevImages, ...response.data.results]);
         setTotalPages(response.data.total_pages);
     } catch {
@@ -58,29 +59,19 @@ export default function App() {
     }
     }
 
-    fetchData (newImages, carrentPage)
+    fetchData (newImages, currentPage)
 
-}, [newImages, carrentPage])
+}, [newImages, currentPage])
 
   return (
     <>
     <div className='container'>
         <SearchBar onSearch={handleSearch} />
-        {isError && <strong className='error'>Error! Try again!</strong>}
-        <Modal
-          isOpen={modalIsOpen}
-          onRequestClose={closeModal}
-          contentLabel="Image modal"
-          className="modal"
-          overlayClassName="overlay"
-          shouldCloseOnOverlayClick={true}
-          preventScroll={false}
-        >
-          {selectedImage && <img src={selectedImage} alt="Large view" />}
-        </Modal>
+        {isError && <ErrorMessage/>}
+        <ImageModal isOpen={modalIsOpen} onClose={closeModal} imageUrl={selectedImage} />
         {images.length > 0 && <ImageGallery photos={images} onImageClick={openModal} />}
-        {isLoading && <p className='loader'><GridLoader size={10} color={"#1853ec"} /></p>}
-        {images.length > 0 && !isLoading && carrentPage !== totalPages && <button onClick={incrementPage} className='btn'><IoSearch />Load more</button>}
+        {isLoading && <Loader/>}
+        {images.length > 0 && !isLoading && currentPage !== totalPages && <LoadMoreBtn nextPage={incrementPage} />}
     </div>
     </>
   );
